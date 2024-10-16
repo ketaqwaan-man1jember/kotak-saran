@@ -13,7 +13,7 @@ const port = process.env.PORT || 3000;
 // Konfigurasi CORS untuk Vercel
 const corsOptions = {
     origin: [
-        'https://sie1ketaqwaanman1.vercel.app/', // Ganti dengan domain frontend Vercel Anda
+        'https://sie1ketaqwaanman1.vercel.app/feedback', // Ganti dengan domain frontend Vercel Anda
         'http://localhost:3000', // Untuk development
         'http://localhost:5000'
     ],
