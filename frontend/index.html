@@ -39,7 +39,7 @@
             border: 1px solid #ddd;
             border-radius: 4px;
             box-sizing: border-box;
-            resize: none; /* Mencegah pengguna merubah ukuran textarea */
+            resize: none;
         }
         button {
             background-color: #0056b3;
@@ -48,9 +48,9 @@
             padding: 0.5em 1em;
             border-radius: 4px;
             cursor: pointer;
-            margin: 0.5em 0; /* Ubah margin agar lebih baik di perangkat mobile */
-            flex: 1; /* Tombol akan mengisi ruang */
-            max-width: 150px; /* Membatasi ukuran maksimal tombol */
+            margin: 0.5em 0;
+            flex: 1;
+            max-width: 150px;
         }
         button:hover {
             background-color: #003d82;
@@ -58,13 +58,17 @@
         button.selected {
             background-color: #00a86b;
         }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
         #feedbackType {
-            display: flex; /* Menggunakan flexbox untuk tata letak tombol yang lebih baik */
+            display: flex;
             justify-content: center;
             margin-bottom: 1em;
         }
         #feedbackType button {
-            margin: 0 0.5em; /* Tambahkan margin horizontal */
+            margin: 0 0.5em;
         }
         #feedbackList {
             text-align: left;
@@ -76,17 +80,43 @@
             margin-bottom: 1em;
             border-radius: 4px;
         }
+        .error-message {
+            color: #dc3545;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .success-message {
+            color: #28a745;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
 
-        /* Media Queries untuk Responsivitas */
         @media (max-width: 600px) {
             .container {
-                padding: 1em; /* Mengurangi padding pada perangkat kecil */
+                padding: 1em;
             }
             button {
-                padding: 0.4em; /* Menyesuaikan padding tombol di perangkat kecil */
+                padding: 0.4em;
             }
             textarea {
-                font-size: 14px; /* Menyesuaikan ukuran font di textarea */
+                font-size: 14px;
             }
         }
     </style>
@@ -96,6 +126,7 @@
         <img src="logo.png" alt="Logo" class="logo">
         <h2>SIE 1 KETAQWAAN</h2>
         <p>Silahkan memberi masukan kepada kami 😊</p>
+        <div id="messageContainer"></div>
         <form id="feedbackForm">
             <div id="feedbackType">
                 <button type="button" id="kritikBtn">Kritik</button>
@@ -103,15 +134,16 @@
                 <button type="button" id="apresiasiBtn">Apresiasi</button>
             </div>
             <textarea id="feedback" placeholder="Berikan semua Kritik / Saran / Apresiasi" rows="4" required></textarea>
-            <button type="submit">Kirim</button>
+            <button type="submit" id="submitBtn">Kirim</button>
         </form>
         <button id="getFeedbackBtn">All Feedback</button>
         <div id="feedbackList"></div>
     </div>
 
     <script>
-        // Definisikan base URL untuk API
-        const API_URL = 'https://server-codecz.vercel.app'; // Ganti dengan URL backend Vercel Anda
+        const API_URL = window.location.hostname === 'localhost'
+            ? 'http://localhost:3000/api'
+            : 'https://server-codecz.vercel.app/api';
 
         let selectedType = '';
         const kritikBtn = document.getElementById('kritikBtn');
@@ -119,6 +151,36 @@
         const apresiasiBtn = document.getElementById('apresiasiBtn');
         const getFeedbackBtn = document.getElementById('getFeedbackBtn');
         const feedbackList = document.getElementById('feedbackList');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageContainer = document.getElementById('messageContainer');
+
+        function showMessage(message, isError = false) {
+            messageContainer.innerHTML = `
+                <div class="${isError ? 'error-message' : 'success-message'}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        function setLoading(isLoading) {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.disabled = isLoading;
+                if (isLoading) {
+                    button.classList.add('loading');
+                } else {
+                    button.classList.remove('loading');
+                }
+            });
+            if (isLoading) {
+                submitBtn.innerHTML = '<div class="spinner"></div>';
+            } else {
+                submitBtn.innerHTML = 'Kirim';
+            }
+        }
 
         kritikBtn.addEventListener('click', () => selectType('kritik'));
         saranBtn.addEventListener('click', () => selectType('saran'));
@@ -132,31 +194,33 @@
         }
 
         document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
-            e.preventDefault(); 
+            e.preventDefault();
             
             const feedback = document.getElementById('feedback').value.trim();
             if (!selectedType) {
-                alert('Silakan pilih jenis umpan balik (Kritik, Saran, Apresiasi)');
+                showMessage('Silakan pilih jenis umpan balik (Kritik, Saran, Apresiasi)', true);
                 return;
             }
 
             if (feedback.length < 5 || feedback.length > 500) {
-                alert('Feedback harus memiliki antara 5 hingga 500 karakter.');
+                showMessage('Feedback harus memiliki antara 5 hingga 500 karakter.', true);
                 return;
             }
             
+            setLoading(true);
             try {
-                // Gunakan API_URL untuk endpoint
                 const response = await fetch(`${API_URL}/feedback`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
+                        'Accept': 'application/json'
                     },
-                    body: JSON.stringify({ type: selectedType, feedback }),
+                    body: JSON.stringify({ type: selectedType, feedback })
                 });
                 
-                if (!response.ok) {
-                    alert('Terima kasih atas umpan balik Anda!');
+                if (response.ok) {
+                    const result = await response.json();
+                    showMessage('Terima kasih atas umpan balik Anda!');
                     e.target.reset();
                     kritikBtn.classList.remove('selected');
                     saranBtn.classList.remove('selected');
@@ -167,7 +231,9 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                alert('Terjadi kesalahan saat mengirim umpan balik. Silakan coba lagi.');
+                showMessage('Terjadi kesalahan saat mengirim umpan balik. Silakan coba lagi.', true);
+            } finally {
+                setLoading(false);
             }
         });
 
@@ -175,16 +241,22 @@
 
         getFeedbackBtn.addEventListener('click', async () => {
             if (!feedbackVisible) {
+                setLoading(true);
                 try {
-                    // Gunakan API_URL untuk endpoint
                     const response = await fetch(`${API_URL}/feedback`);
-                    const feedbacks = await response.json();
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch feedback');
+                    }
+                    const result = await response.json();
+                    const feedbacks = result.data || result;
                     displayFeedback(feedbacks);
                     getFeedbackBtn.textContent = 'Close Feedback';
                     feedbackVisible = true;
                 } catch (error) {
                     console.error('Error:', error);
-                    alert('Terjadi kesalahan saat mengambil umpan balik. Silakan coba lagi.');
+                    showMessage('Terjadi kesalahan saat mengambil umpan balik. Silakan coba lagi.', true);
+                } finally {
+                    setLoading(false);
                 }
             } else {
                 feedbackList.innerHTML = '';
@@ -194,14 +266,19 @@
         });
 
         function displayFeedback(feedbacks) {
+            if (!Array.isArray(feedbacks)) {
+                console.error('Expected array of feedbacks');
+                return;
+            }
+            
             feedbackList.innerHTML = '';
             feedbacks.forEach(item => {
                 const feedbackItem = document.createElement('div');
                 feedbackItem.classList.add('feedback-item');
                 feedbackItem.innerHTML = `
-                    <strong>${item.type.toUpperCase()}</strong>
-                    <p>${item.feedback}</p>
-                    <small>${new Date(item.createdAt).toLocaleString()}</small>
+                    <strong>${(item.type || '').toUpperCase()}</strong>
+                    <p>${item.feedback || ''}</p>
+                    <small>${new Date(item.createdAt).toLocaleString('id-ID')}</small>
                 `;
                 feedbackList.appendChild(feedbackItem);
             });
