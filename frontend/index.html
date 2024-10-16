@@ -111,7 +111,7 @@
 
     <script>
         // Definisikan base URL untuk API
-        const API_URL = 'https://server-codecz.vercel.app/'; // Ganti dengan URL backend Vercel Anda
+        const API_URL = 'https://server-codecz.vercel.app'; // Ganti dengan URL backend Vercel Anda
 
         let selectedType = '';
         const kritikBtn = document.getElementById('kritikBtn');
@@ -155,9 +155,9 @@
                     body: JSON.stringify({ type: selectedType, feedback }),
                 });
                 
-                if (response.ok) {
+                if (!response.ok) {
                     alert('Terima kasih atas umpan balik Anda!');
-                    this.reset();
+                    e.target.reset();
                     kritikBtn.classList.remove('selected');
                     saranBtn.classList.remove('selected');
                     apresiasiBtn.classList.remove('selected');
