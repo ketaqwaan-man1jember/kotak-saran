@@ -13,14 +13,14 @@ const port = process.env.PORT || 3000;
 // Konfigurasi CORS untuk Vercel
 const corsOptions = {
     origin: [
-        'https://sie1ketaqwaanman1.vercel.app', // Ganti dengan domain frontend Vercel Anda
-        'http://localhost:3000', // Untuk development
-        'http://localhost:5000'
+        'https://sie1ketaqwaanman1.vercel.app', // Frontend hosted on Vercel
+        'http://localhost:3000', // Development (adjust this as needed)
     ],
     methods: ['GET', 'POST'],
     credentials: true,
     optionsSuccessStatus: 200
 };
+
 
 app.use(cors(corsOptions));
 app.use(express.json());
