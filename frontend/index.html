@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIE 1 KETAQWAAN</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 2em;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 500px;
+        }
+        .logo {
+            width: 100%;
+            max-width: 200px;
+            margin-bottom: 1em;
+        }
+        textarea {
+            width: 100%;
+            padding: 0.5em;
+            margin-bottom: 1em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: none; /* Mencegah pengguna merubah ukuran textarea */
+        }
+        button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.5em 0; /* Ubah margin agar lebih baik di perangkat mobile */
+            flex: 1; /* Tombol akan mengisi ruang */
+            max-width: 150px; /* Membatasi ukuran maksimal tombol */
+        }
+        button:hover {
+            background-color: #003d82;
+        }
+        button.selected {
+            background-color: #00a86b;
+        }
+        #feedbackType {
+            display: flex; /* Menggunakan flexbox untuk tata letak tombol yang lebih baik */
+            justify-content: center;
+            margin-bottom: 1em;
+        }
+        #feedbackType button {
+            margin: 0 0.5em; /* Tambahkan margin horizontal */
+        }
+        #feedbackList {
+            text-align: left;
+            margin-top: 2em;
+        }
+        .feedback-item {
+            background-color: #f0f0f0;
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 4px;
+        }
+
+        /* Media Queries untuk Responsivitas */
+        @media (max-width: 600px) {
+            .container {
+                padding: 1em; /* Mengurangi padding pada perangkat kecil */
+            }
+            button {
+                padding: 0.4em; /* Menyesuaikan padding tombol di perangkat kecil */
+            }
+            textarea {
+                font-size: 14px; /* Menyesuaikan ukuran font di textarea */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <img src="logo.png" alt="Logo" class="logo">
+        <h2>SIE 1 KETAQWAAN</h2>
+        <p>Silahkan memberi masukan kepada kami 😊</p>
+        <form id="feedbackForm">
+            <div id="feedbackType">
+                <button type="button" id="kritikBtn">Kritik</button>
+                <button type="button" id="saranBtn">Saran</button>
+                <button type="button" id="apresiasiBtn">Apresiasi</button>
+            </div>
+            <textarea id="feedback" placeholder="Berikan semua Kritik / Saran / Apresiasi" rows="4" required></textarea>
+            <button type="submit">Kirim</button>
+        </form>
+        <button id="getFeedbackBtn">All Feedback</button>
+        <div id="feedbackList"></div>
+    </div>
+
+    <script>
+        // Definisikan base URL untuk API
+        const API_URL = 'https://your-backend-url.vercel.app'; // Ganti dengan URL backend Vercel Anda
+
+        let selectedType = '';
+        const kritikBtn = document.getElementById('kritikBtn');
+        const saranBtn = document.getElementById('saranBtn');
+        const apresiasiBtn = document.getElementById('apresiasiBtn');
+        const getFeedbackBtn = document.getElementById('getFeedbackBtn');
+        const feedbackList = document.getElementById('feedbackList');
+
+        kritikBtn.addEventListener('click', () => selectType('kritik'));
+        saranBtn.addEventListener('click', () => selectType('saran'));
+        apresiasiBtn.addEventListener('click', () => selectType('apresiasi'));
+
+        function selectType(type) {
+            selectedType = type;
+            kritikBtn.classList.toggle('selected', type === 'kritik');
+            saranBtn.classList.toggle('selected', type === 'saran');
+            apresiasiBtn.classList.toggle('selected', type === 'apresiasi');
+        }
+
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); 
+            
+            const feedback = document.getElementById('feedback').value.trim();
+            if (!selectedType) {
+                alert('Silakan pilih jenis umpan balik (Kritik, Saran, Apresiasi)');
+                return;
+            }
+
+            if (feedback.length < 5 || feedback.length > 500) {
+                alert('Feedback harus memiliki antara 5 hingga 500 karakter.');
+                return;
+            }
+            
+            try {
+                // Gunakan API_URL untuk endpoint
+                const response = await fetch(`${API_URL}/feedback`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ type: selectedType, feedback }),
+                });
+                
+                if (response.ok) {
+                    alert('Terima kasih atas umpan balik Anda!');
+                    this.reset();
+                    kritikBtn.classList.remove('selected');
+                    saranBtn.classList.remove('selected');
+                    apresiasiBtn.classList.remove('selected');
+                    selectedType = '';
+                } else {
+                    throw new Error('Failed to submit feedback');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan saat mengirim umpan balik. Silakan coba lagi.');
+            }
+        });
+
+        let feedbackVisible = false;
+
+        getFeedbackBtn.addEventListener('click', async () => {
+            if (!feedbackVisible) {
+                try {
+                    // Gunakan API_URL untuk endpoint
+                    const response = await fetch(`${API_URL}/feedback`);
+                    const feedbacks = await response.json();
+                    displayFeedback(feedbacks);
+                    getFeedbackBtn.textContent = 'Close Feedback';
+                    feedbackVisible = true;
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Terjadi kesalahan saat mengambil umpan balik. Silakan coba lagi.');
+                }
+            } else {
+                feedbackList.innerHTML = '';
+                getFeedbackBtn.textContent = 'All Feedback';
+                feedbackVisible = false;
+            }
+        });
+
+        function displayFeedback(feedbacks) {
+            feedbackList.innerHTML = '';
+            feedbacks.forEach(item => {
+                const feedbackItem = document.createElement('div');
+                feedbackItem.classList.add('feedback-item');
+                feedbackItem.innerHTML = `
+                    <strong>${item.type.toUpperCase()}</strong>
+                    <p>${item.feedback}</p>
+                    <small>${new Date(item.createdAt).toLocaleString()}</small>
+                `;
+                feedbackList.appendChild(feedbackItem);
+            });
+        }
+    </script>
+</body>
+</html>
