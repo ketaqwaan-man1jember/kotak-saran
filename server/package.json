@@ -1,0 +1,24 @@
+{
+  "name": "kotak-saran-sie-1",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dompurify": "^3.1.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "jsdom": "^25.0.1",
+    "mongodb": "^6.9.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.7"
+  }
+}
