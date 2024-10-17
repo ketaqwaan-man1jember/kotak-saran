@@ -7,59 +7,31 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            /* Optimized background implementation */
-            background: url('background.png') center center/cover no-repeat fixed;
-            margin: 0;
-            padding: 0;
-            min-height: 100vh;
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-attachment: fixed;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
             box-sizing: border-box;
         }
-        
-        /* Add a preload hint for the background image */
-        @media (min-width: 768px) {
-            body::before {
-                content: '';
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                z-index: -1;
-                background: inherit;
-                background-attachment: fixed;
-                will-change: transform;
-                /* Enable hardware acceleration */
-                transform: translateZ(0);
-            }
-        }
-
         .container {
-            background-color: rgba(255, 255, 255, 0.5);
+            background-color: rgba(255, 255, 255, 0.8);
             padding: 2em;
             border-radius: 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
             text-align: center;
             max-width: 90%;
             width: 500px;
-            margin: 20px;
-            /* Enable hardware acceleration for the container */
-            transform: translateZ(0);
-            backdrop-filter: blur(5px);
         }
-
         .logo {
             width: 100%;
             max-width: 200px;
-            height: auto;
             margin-bottom: 1em;
-            /* Add image rendering optimization */
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
         }
-
         textarea {
             width: 100%;
             padding: 0.5em;
@@ -68,9 +40,7 @@
             border-radius: 4px;
             box-sizing: border-box;
             resize: none;
-            font-size: 16px; /* Prevent zoom on mobile */
         }
-
         button {
             background-color: #0056b3;
             color: white;
@@ -81,66 +51,49 @@
             margin: 0.5em 0;
             flex: 1;
             max-width: 150px;
-            transition: background-color 0.2s ease;
-            /* Enable hardware acceleration for smooth hover effects */
-            transform: translateZ(0);
         }
-
         button:hover {
             background-color: #003d82;
         }
-
         button.selected {
             background-color: #00a86b;
         }
-
         button:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-
         #feedbackType {
             display: flex;
             justify-content: center;
-            gap: 0.5em;
             margin-bottom: 1em;
-            flex-wrap: wrap;
         }
-
+        #feedbackType button {
+            margin: 0 0.5em;
+        }
         #feedbackList {
             text-align: left;
             margin-top: 2em;
         }
-
         .feedback-item {
-            background-color: rgba(240, 240, 240, 0.9);
+            background-color: #f0f0f0;
             padding: 1em;
             margin-bottom: 1em;
             border-radius: 4px;
-            transition: transform 0.2s ease;
         }
-
-        .feedback-item:hover {
-            transform: translateY(-2px);
-        }
-
         .error-message {
             color: #dc3545;
             margin: 10px 0;
             font-size: 14px;
         }
-
         .success-message {
             color: #28a745;
             margin: 10px 0;
             font-size: 14px;
         }
-
         .loading {
             opacity: 0.5;
             pointer-events: none;
         }
-
         .spinner {
             display: inline-block;
             width: 20px;
@@ -150,42 +103,27 @@
             border-radius: 50%;
             animation: spin 1s linear infinite;
         }
-
         @keyframes spin {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
 
-        /* Responsive optimizations */
         @media (max-width: 600px) {
             .container {
                 padding: 1em;
-                margin: 10px;
             }
-            
             button {
                 padding: 0.4em;
-                font-size: 14px;
             }
-            
             textarea {
-                font-size: 16px;
-            }
-            
-            /* Disable fixed background on mobile for better performance */
-            body {
-                background-attachment: scroll;
+                font-size: 14px;
             }
         }
     </style>
 </head>
 <body>
-    <!-- Add preload hint for critical assets -->
-    <link rel="preload" as="image" href="background.png">
-    <link rel="preload" as="image" href="logo.png">
-
     <div class="container">
-        <img src="logo.png" alt="Logo" class="logo" loading="eager">
+        <img src="logo.png" alt="Logo" class="logo">
         <h2>SIE 1 KETAQWAAN</h2>
         <p>Silahkan memberi masukan kepada kami 😊</p>
         <div id="messageContainer"></div>
@@ -203,7 +141,6 @@
     </div>
 
     <script>
-        // Your existing JavaScript code remains the same
         const API_URL = window.location.hostname === 'localhost'
             ? '/api'
             : 'https://server-codecz.vercel.app/api';
