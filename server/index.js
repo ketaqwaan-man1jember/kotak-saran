@@ -99,7 +99,7 @@ app.get('/api/feedback', getLimiter, async (req, res) => {
         const collection = client.db('feedbackDB').collection('feedbacks');
         const feedbacks = await collection.find()
             .sort({ createdAt: -1 })
-            .limit(20)
+            .limit(10)
             .toArray();
 
         res.json({
