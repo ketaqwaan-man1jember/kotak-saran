@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIE 1 KETAQWAAN</title>
+    <!-- Add Security Headers -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://server-codecz.vercel.app; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <meta name="robots" content="noindex,nofollow">
+    
+    <!-- Existing styles... -->
+    <style>
+        /* Your existing styles... */
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('background.jpg');
+            background-size: cover;
+            background-attachment: fixed;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 2em;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 500px;
+        }
+        .logo {
+            width: 100%;
+            max-width: 200px;
+            margin-bottom: 1em;
+        }
+        textarea {
+            width: 100%;
+            padding: 0.5em;
+            margin-bottom: 1em;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            resize: none;
+        }
+        button {
+            background-color: #0056b3;
+            color: white;
+            border: none;
+            padding: 0.5em 1em;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 0.5em 0;
+            flex: 1;
+            max-width: 150px;
+        }
+        button:hover {
+            background-color: #003d82;
+        }
+        button.selected {
+            background-color: #00a86b;
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #feedbackType {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 1em;
+        }
+        #feedbackType button {
+            margin: 0 0.5em;
+        }
+        #feedbackList {
+            text-align: left;
+            margin-top: 2em;
+        }
+        .feedback-item {
+            background-color: #f0f0f0;
+            padding: 1em;
+            margin-bottom: 1em;
+            border-radius: 4px;
+        }
+        .error-message {
+            color: #dc3545;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .success-message {
+            color: #28a745;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        .loading {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 1em;
+            }
+            button {
+                padding: 0.4em;
+            }
+            textarea {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Existing HTML... -->
+        <img src="logo.png" alt="Logo" class="logo">
+        <h2>SIE 1 KETAQWAAN</h2>
+        <p>Silahkan memberi masukan kepada kami 😊</p>
+        <div id="messageContainer"></div>
+        <form id="feedbackForm">
+            <div id="feedbackType">
+                <button type="button" id="kritikBtn">Kritik</button>
+                <button type="button" id="saranBtn">Saran</button>
+                <button type="button" id="apresiasiBtn">Apresiasi</button>
+            </div>
+            <textarea id="feedback" placeholder="Berikan semua Kritik / Saran / Apresiasi" rows="4" required></textarea>
+            <button type="submit" id="submitBtn">Kirim</button>
+        </form>
+        <button id="getFeedbackBtn">All Feedback</button>
+        <div id="feedbackList"></div>
+    </div>
+
+    <script>
+        // Security Configuration
+        const securityConfig = {
+            maxRequestsPerMinute: 5,
+            minFeedbackLength: 5,
+            maxFeedbackLength: 500,
+            allowedFeedbackTypes: ['kritik', 'saran', 'apresiasi'],
+            requestTimeout: 5000, // 5 seconds
+        };
+
+        // Secure storage handling
+        const secureStorage = {
+            set: (key, value, expiryMinutes = 60) => {
+                const item = {
+                    value,
+                    timestamp: new Date().getTime(),
+                    expiry: new Date().getTime() + (expiryMinutes * 60 * 1000)
+                };
+                localStorage.setItem(key, JSON.stringify(item));
+            },
+            get: (key) => {
+                const item = localStorage.getItem(key);
+                if (!item) return null;
+                
+                const parsedItem = JSON.parse(item);
+                if (new Date().getTime() > parsedItem.expiry) {
+                    localStorage.removeItem(key);
+                    return null;
+                }
+                return parsedItem.value;
+            },
+            clear: () => localStorage.clear()
+        };
+
+        // Rate limiting implementation
+        class RateLimiter {
+            constructor(maxRequests, timeWindow) {
+                this.maxRequests = maxRequests;
+                this.timeWindow = timeWindow;
+                this.requests = [];
+            }
+
+            checkLimit() {
+                const now = Date.now();
+                this.requests = this.requests.filter(time => now - time < this.timeWindow);
+                
+                if (this.requests.length >= this.maxRequests) {
+                    throw new Error('Rate limit exceeded');
+                }
+                
+                this.requests.push(now);
+                return true;
+            }
+        }
+
+        const rateLimiter = new RateLimiter(securityConfig.maxRequestsPerMinute, 60000);
+
+        // Input sanitization
+        function sanitizeInput(input) {
+            if (typeof input !== 'string') return '';
+            return input
+                .replace(/[<>]/g, '') // Remove potential HTML tags
+                .replace(/&/g, '&amp;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#x27;')
+                .replace(/\//g, '&#x2F;')
+                .trim();
+        }
+
+        // Enhanced form validation
+        function validateForm(type, feedback) {
+            if (!securityConfig.allowedFeedbackTypes.includes(type)) {
+                throw new Error('Invalid feedback type');
+            }
+
+            const sanitizedFeedback = sanitizeInput(feedback);
+            
+            if (sanitizedFeedback.length < securityConfig.minFeedbackLength || 
+                sanitizedFeedback.length > securityConfig.maxFeedbackLength) {
+                throw new Error(`Feedback must be between ${securityConfig.minFeedbackLength} and ${securityConfig.maxFeedbackLength} characters`);
+            }
+
+            return sanitizedFeedback;
+        }
+
+        // Secure API calls
+        async function secureApiCall(endpoint, method = 'GET', data = null) {
+            try {
+                rateLimiter.checkLimit();
+
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), securityConfig.requestTimeout);
+
+                const options = {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    signal: controller.signal,
+                };
+
+                if (data) {
+                    options.body = JSON.stringify(data);
+                }
+
+                const response = await fetch(`${API_URL}${endpoint}`, options);
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                return await response.json();
+            } catch (error) {
+                if (error.name === 'AbortError') {
+                    throw new Error('Request timeout');
+                }
+                throw error;
+            }
+        }
+
+        // Enhanced form submission
+        document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            try {
+                const feedback = document.getElementById('feedback').value;
+                if (!selectedType) {
+                    throw new Error('Silakan pilih jenis umpan balik');
+                }
+
+                const sanitizedFeedback = validateForm(selectedType, feedback);
+                
+                setLoading(true);
+                const result = await secureApiCall('/feedback', 'POST', {
+                    type: selectedType,
+                    feedback: sanitizedFeedback,
+                    timestamp: Date.now()
+                });
+
+                showMessage('Terima kasih atas umpan balik Anda!');
+                resetForm();
+                secureStorage.set('lastSubmission', Date.now());
+
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage(error.message || 'Terjadi kesalahan. Silakan coba lagi.', true);
+            } finally {
+                setLoading(false);
+            }
+        });
+
+        // Enhanced feedback display
+        async function displayFeedbackSecurely(feedbacks) {
+            const feedbackList = document.getElementById('feedbackList');
+            feedbackList.innerHTML = '';
+
+            if (!Array.isArray(feedbacks)) {
+                console.error('Invalid feedback data');
+                return;
+            }
+
+            feedbacks.forEach(item => {
+                if (!item || typeof item !== 'object') return;
+
+                const feedbackItem = document.createElement('div');
+                feedbackItem.className = 'feedback-item';
+                
+                // Secure content rendering
+                const type = sanitizeInput(item.type || '');
+                const feedback = sanitizeInput(item.feedback || '');
+                const date = item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID') : '';
+
+                feedbackItem.innerHTML = `
+                    <strong>${type.toUpperCase()}</strong>
+                    <p>${feedback}</p>
+                    <small>${date}</small>
+                `;
+                
+                feedbackList.appendChild(feedbackItem);
+            });
+        }
+
+        // Initialize security measures
+        function initSecurity() {
+            // Clear any expired data
+            secureStorage.clear();
+            
+            // Add event listeners for security events
+            window.addEventListener('error', (e) => {
+                console.error('Runtime error:', e);
+                showMessage('Terjadi kesalahan. Halaman akan dimuat ulang.', true);
+                setTimeout(() => window.location.reload(), 3000);
+            });
+
+            // Prevent common attack vectors
+            document.addEventListener('DOMContentLoaded', () => {
+                document.querySelectorAll('a').forEach(link => {
+                    if (link.getAttribute('target') === '_blank') {
+                        link.setAttribute('rel', 'noopener noreferrer');
+                    }
+                });
+            });
+        }
+
+        initSecurity();
+    </script>
+</body>
+</html>
