@@ -30,7 +30,7 @@ const SECURITY_CONFIG = {
     },
     cors: {
         whitelist: [
-            'https://sie1ketaqwaanman1.vercel.app',
+            'https://kotaksaran-ketaqwaanman1jember.vercel.app',
             'http://localhost:3000'
         ]
     },
