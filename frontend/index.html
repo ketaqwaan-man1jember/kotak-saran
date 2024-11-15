@@ -4,16 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SIE 1 KETAQWAAN</title>
-    <!-- Add Security Headers -->
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://server-kotak-saran.vercel.app; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline';">
-    <meta http-equiv="X-Frame-Options" content="DENY">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
-    <meta name="robots" content="noindex,nofollow">
-    
-    <!-- Existing styles... -->
     <style>
-        /* Your existing styles... */
         body {
             font-family: Arial, sans-serif;
             background-image: url('background.jpg');
@@ -132,7 +123,6 @@
 </head>
 <body>
     <div class="container">
-        <!-- Existing HTML... -->
         <img src="logo.png" alt="Logo" class="logo">
         <h2>SIE 1 KETAQWAAN</h2>
         <p>Silahkan memberi masukan kepada kami 😊</p>
@@ -151,212 +141,148 @@
     </div>
 
     <script>
-        // Security Configuration
-        const securityConfig = {
-            maxRequestsPerMinute: 5,
-            minFeedbackLength: 5,
-            maxFeedbackLength: 500,
-            allowedFeedbackTypes: ['kritik', 'saran', 'apresiasi'],
-            requestTimeout: 5000, // 5 seconds
-        };
+        const API_URL = window.location.hostname === 'localhost'
+            ? '/api'
+            : 'https://server-kotak-saran.vercel.app/api';
 
-        // Secure storage handling
-        const secureStorage = {
-            set: (key, value, expiryMinutes = 60) => {
-                const item = {
-                    value,
-                    timestamp: new Date().getTime(),
-                    expiry: new Date().getTime() + (expiryMinutes * 60 * 1000)
-                };
-                localStorage.setItem(key, JSON.stringify(item));
-            },
-            get: (key) => {
-                const item = localStorage.getItem(key);
-                if (!item) return null;
-                
-                const parsedItem = JSON.parse(item);
-                if (new Date().getTime() > parsedItem.expiry) {
-                    localStorage.removeItem(key);
-                    return null;
+        let selectedType = '';
+        const kritikBtn = document.getElementById('kritikBtn');
+        const saranBtn = document.getElementById('saranBtn');
+        const apresiasiBtn = document.getElementById('apresiasiBtn');
+        const getFeedbackBtn = document.getElementById('getFeedbackBtn');
+        const feedbackList = document.getElementById('feedbackList');
+        const submitBtn = document.getElementById('submitBtn');
+        const messageContainer = document.getElementById('messageContainer');
+
+        function showMessage(message, isError = false) {
+            messageContainer.innerHTML = `
+                <div class="${isError ? 'error-message' : 'success-message'}">
+                    ${message}
+                </div>
+            `;
+            setTimeout(() => {
+                messageContainer.innerHTML = '';
+            }, 3000);
+        }
+
+        function setLoading(isLoading) {
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.disabled = isLoading;
+                if (isLoading) {
+                    button.classList.add('loading');
+                } else {
+                    button.classList.remove('loading');
                 }
-                return parsedItem.value;
-            },
-            clear: () => localStorage.clear()
-        };
-
-        // Rate limiting implementation
-        class RateLimiter {
-            constructor(maxRequests, timeWindow) {
-                this.maxRequests = maxRequests;
-                this.timeWindow = timeWindow;
-                this.requests = [];
-            }
-
-            checkLimit() {
-                const now = Date.now();
-                this.requests = this.requests.filter(time => now - time < this.timeWindow);
-                
-                if (this.requests.length >= this.maxRequests) {
-                    throw new Error('Rate limit exceeded');
-                }
-                
-                this.requests.push(now);
-                return true;
+            });
+            if (isLoading) {
+                submitBtn.innerHTML = '<div class="spinner"></div>';
+            } else {
+                submitBtn.innerHTML = 'Kirim';
             }
         }
 
-        const rateLimiter = new RateLimiter(securityConfig.maxRequestsPerMinute, 60000);
+        kritikBtn.addEventListener('click', () => selectType('kritik'));
+        saranBtn.addEventListener('click', () => selectType('saran'));
+        apresiasiBtn.addEventListener('click', () => selectType('apresiasi'));
 
-        // Input sanitization
-        function sanitizeInput(input) {
-            if (typeof input !== 'string') return '';
-            return input
-                .replace(/[<>]/g, '') // Remove potential HTML tags
-                .replace(/&/g, '&amp;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#x27;')
-                .replace(/\//g, '&#x2F;')
-                .trim();
+        function selectType(type) {
+            selectedType = type;
+            kritikBtn.classList.toggle('selected', type === 'kritik');
+            saranBtn.classList.toggle('selected', type === 'saran');
+            apresiasiBtn.classList.toggle('selected', type === 'apresiasi');
         }
 
-        // Enhanced form validation
-        function validateForm(type, feedback) {
-            if (!securityConfig.allowedFeedbackTypes.includes(type)) {
-                throw new Error('Invalid feedback type');
-            }
-
-            const sanitizedFeedback = sanitizeInput(feedback);
-            
-            if (sanitizedFeedback.length < securityConfig.minFeedbackLength || 
-                sanitizedFeedback.length > securityConfig.maxFeedbackLength) {
-                throw new Error(`Feedback must be between ${securityConfig.minFeedbackLength} and ${securityConfig.maxFeedbackLength} characters`);
-            }
-
-            return sanitizedFeedback;
-        }
-
-        // Secure API calls
-        async function secureApiCall(endpoint, method = 'GET', data = null) {
-            try {
-                rateLimiter.checkLimit();
-
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), securityConfig.requestTimeout);
-
-                const options = {
-                    method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                    signal: controller.signal,
-                };
-
-                if (data) {
-                    options.body = JSON.stringify(data);
-                }
-
-                const response = await fetch(`${API_URL}${endpoint}`, options);
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
-                return await response.json();
-            } catch (error) {
-                if (error.name === 'AbortError') {
-                    throw new Error('Request timeout');
-                }
-                throw error;
-            }
-        }
-
-        // Enhanced form submission
         document.getElementById('feedbackForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
+            const feedback = document.getElementById('feedback').value.trim();
+            if (!selectedType) {
+                showMessage('Silakan pilih jenis umpan balik (Kritik, Saran, Apresiasi)', true);
+                return;
+            }
+
+            if (feedback.length < 5 || feedback.length > 500) {
+                showMessage('Feedback harus memiliki antara 5 hingga 500 karakter.', true);
+                return;
+            }
+            
+            setLoading(true);
             try {
-                const feedback = document.getElementById('feedback').value;
-                if (!selectedType) {
-                    throw new Error('Silakan pilih jenis umpan balik');
-                }
-
-                const sanitizedFeedback = validateForm(selectedType, feedback);
-                
-                setLoading(true);
-                const result = await secureApiCall('/feedback', 'POST', {
-                    type: selectedType,
-                    feedback: sanitizedFeedback,
-                    timestamp: Date.now()
+                const response = await fetch(`${API_URL}/feedback`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({ type: selectedType, feedback })
                 });
-
-                showMessage('Terima kasih atas umpan balik Anda!');
-                resetForm();
-                secureStorage.set('lastSubmission', Date.now());
-
+                
+                if (response.ok) {
+                    const result = await response.json();
+                    showMessage('Terima kasih atas umpan balik Anda!');
+                    e.target.reset();
+                    kritikBtn.classList.remove('selected');
+                    saranBtn.classList.remove('selected');
+                    apresiasiBtn.classList.remove('selected');
+                    selectedType = '';
+                } else {
+                    throw new Error('Failed to submit feedback');
+                }
             } catch (error) {
                 console.error('Error:', error);
-                showMessage(error.message || 'Terjadi kesalahan. Silakan coba lagi.', true);
+                showMessage('Terjadi kesalahan saat mengirim umpan balik. Silakan coba lagi.', true);
             } finally {
                 setLoading(false);
             }
         });
 
-        // Enhanced feedback display
-        async function displayFeedbackSecurely(feedbacks) {
-            const feedbackList = document.getElementById('feedbackList');
-            feedbackList.innerHTML = '';
+        let feedbackVisible = false;
 
+        getFeedbackBtn.addEventListener('click', async () => {
+            if (!feedbackVisible) {
+                setLoading(true);
+                try {
+                    const response = await fetch(`${API_URL}/feedback`);
+                    if (!response.ok) {
+                        throw new Error('Failed to fetch feedback');
+                    }
+                    const result = await response.json();
+                    const feedbacks = result.data || result;
+                    displayFeedback(feedbacks);
+                    getFeedbackBtn.textContent = 'Close Feedback';
+                    feedbackVisible = true;
+                } catch (error) {
+                    console.error('Error:', error);
+                    showMessage('Terjadi kesalahan saat mengambil umpan balik. Silakan coba lagi.', true);
+                } finally {
+                    setLoading(false);
+                }
+            } else {
+                feedbackList.innerHTML = '';
+                getFeedbackBtn.textContent = 'All Feedback';
+                feedbackVisible = false;
+            }
+        });
+
+        function displayFeedback(feedbacks) {
             if (!Array.isArray(feedbacks)) {
-                console.error('Invalid feedback data');
+                console.error('Expected array of feedbacks');
                 return;
             }
-
+            
+            feedbackList.innerHTML = '';
             feedbacks.forEach(item => {
-                if (!item || typeof item !== 'object') return;
-
                 const feedbackItem = document.createElement('div');
-                feedbackItem.className = 'feedback-item';
-                
-                // Secure content rendering
-                const type = sanitizeInput(item.type || '');
-                const feedback = sanitizeInput(item.feedback || '');
-                const date = item.createdAt ? new Date(item.createdAt).toLocaleString('id-ID') : '';
-
+                feedbackItem.classList.add('feedback-item');
                 feedbackItem.innerHTML = `
-                    <strong>${type.toUpperCase()}</strong>
-                    <p>${feedback}</p>
-                    <small>${date}</small>
+                    <strong>${(item.type || '').toUpperCase()}</strong>
+                    <p>${item.feedback || ''}</p>
+                    <small>${new Date(item.createdAt).toLocaleString('id-ID')}</small>
                 `;
-                
                 feedbackList.appendChild(feedbackItem);
             });
         }
-
-        // Initialize security measures
-        function initSecurity() {
-            // Clear any expired data
-            secureStorage.clear();
-            
-            // Add event listeners for security events
-            window.addEventListener('error', (e) => {
-                console.error('Runtime error:', e);
-                showMessage('Terjadi kesalahan. Halaman akan dimuat ulang.', true);
-                setTimeout(() => window.location.reload(), 3000);
-            });
-
-            // Prevent common attack vectors
-            document.addEventListener('DOMContentLoaded', () => {
-                document.querySelectorAll('a').forEach(link => {
-                    if (link.getAttribute('target') === '_blank') {
-                        link.setAttribute('rel', 'noopener noreferrer');
-                    }
-                });
-            });
-        }
-
-        initSecurity();
     </script>
 </body>
 </html>
